@@ -1,0 +1,11 @@
+# Created by Open3D 
+# object name: D01009
+# number of vertices: 3
+# number of triangles: 1
+v 0.326094 0.008335 0.178
+vn 0 0 -1
+v 0.311167 0.003889 0.178
+vn 0 0 -1
+v 0.31902 0.005614 0.178
+vn 0 0 -1
+f 2//2 1//1 3//3
