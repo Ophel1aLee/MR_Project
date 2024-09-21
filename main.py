@@ -97,11 +97,13 @@ class MeshViewerApp:
 
         # 创建 Treeview 表格
         #  Create Treeview sheet
-        self.tree = ttk.Treeview(table_frame, columns=('File', 'Vertices', 'Triangles', 'Edge Variance'), show='headings')
+        self.tree = ttk.Treeview(table_frame, columns=('File', 'Class', 'Vertices', 'Triangles', 'Edge Variance', 'AABB'), show='headings')
         self.tree.heading('File', text='File Path')
+        self.tree.heading('Class', text='Shape Class')
         self.tree.heading('Vertices', text='Vertices')
         self.tree.heading('Triangles', text='Triangles')
         self.tree.heading('Edge Variance', text='Edge Variance')
+        self.tree.heading('AABB', text='AABB')
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # 添加 Scrollbar
@@ -159,7 +161,8 @@ class MeshViewerApp:
     # Insert data into table
     def insert_data(self, data):
         for _, row in data.iterrows():
-            self.tree.insert('', tk.END, values=(row['file'], row['vertices'], row['triangles'], row['edge_var']))
+            self.tree.insert('', tk.END, values=(
+                row['file'], row['class'], row['vertices'], row['triangles'], row['edge_var'], (row['minx'], row['miny'], row['minz'], row['maxx'], row['maxy'], row['maxz'])))
 
     # 排序并更新表格
     # Sort and update the table
