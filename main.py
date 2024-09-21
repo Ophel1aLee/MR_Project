@@ -25,6 +25,10 @@ def display_mesh(mesh_path, show_axes, bg_color, vis_option):
     # Setting background color
     opt.background_color = np.asarray(bg_color)
 
+    # 显示背面
+    # Show back faces
+    opt.mesh_show_back_face = True
+
     # 设置显示模式
     # Setting display mode
     if vis_option == "smoothshade":
