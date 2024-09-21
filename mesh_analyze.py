@@ -47,7 +47,7 @@ def analyze_mesh_in_folder(folder_path):
     # Using os.walk() to recursively traverse folders and their subfolders
     for root, dirs, files in os.walk(folder_path):
         for file in files:
-            if file.endswith('.obj') or file.endswith('.ply') or file.endswith('.stl'):
+            if file.endswith('.obj'):
                 file_path = os.path.join(root, file)
                 try:
                     # print(f"Loading mesh: {file_path}")
