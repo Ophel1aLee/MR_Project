@@ -55,33 +55,23 @@ def analyze_mesh_in_folder(folder_path):
 
     # 使用 os.walk() 递归遍历文件夹及其子文件夹
     # Using os.walk() to recursively traverse folders and their subfolders
-    class_names = glob.glob("**", root_dir=folder_path)
+    # class_names = glob.glob("**", root_dir=folder_path)
 
-    for shape_class in class_names:
-        root_path = os.path.join(folder_path, shape_class)
-
-        print(f"Analyzing shapes of class {shape_class}")
-
-        # files = [glob.glob(f, root_dir=root_path) for f in ["*.obj", "*.ply", "*.stl"]]
-
-        obj_files = glob.glob("*.obj", root_dir=root_path)
-        stl_files = glob.glob("*.stl", root_dir=root_path)
-        ply_files = glob.glob("*.ply", root_dir=root_path)
-
-        files = obj_files + stl_files + ply_files
-
+    for root, dirs, files in os.walk(folder_path):
         for file in files:
-            try:
-                file_path = os.path.join(root_path, file)
-                # print(f"Loading mesh: {file_path}")
-                # start_time = time.time()
-                mesh = o3d.io.read_triangle_mesh(file_path)
-                mesh.compute_vertex_normals()
-                mesh_info = analyze_mesh(mesh, file, shape_class)
-                mesh_data.append(mesh_info)
-                # print(f"Finished analyzing {file_path} in {time.time() - start_time:.2f} seconds.")
-            except Exception as e:
-                print(f"Error loading {file_path}: {e}")
+            if file.endswith('.obj'):
+                file_path = os.path.join(root, file)
+                shape_class = os.path.basename(os.path.dirname(file_path))
+                try:
+                    # print(f"Loading mesh: {file_path}")
+                    # start_time = time.time()
+                    mesh = o3d.io.read_triangle_mesh(file_path)
+                    mesh.compute_vertex_normals()
+                    mesh_info = analyze_mesh(mesh, file_path, shape_class)
+                    mesh_data.append(mesh_info)
+                    # print(f"Finished analyzing {file_path} in {time.time() - start_time:.2f} seconds.")
+                except Exception as e:
+                    print(f"Error loading {file_path}: {e}")
 
     # 将分析结果放入DataFrame中
     # Put the analysis results into the DataFrame
@@ -102,5 +92,5 @@ def load_or_analyze_mesh(folder_path):
 
     return mesh_df
 
-folder_path = "ShapeDatabase_INFOMR-master"
+folder_path = "./ShapeDatabase_INFOMR-master"
 mesh_df = load_or_analyze_mesh(folder_path)
