@@ -85,8 +85,8 @@ def normalize_database(input_dir, output_dir):
                 output_file_path = os.path.join(output_dir, os.path.relpath(input_file_path, input_dir))
                 shutil.copy2(input_file_path, output_file_path)
 
-input_directory = "./resampled_ShapeDatabase_INFOMR-master"
-output_directory = "./normalized_ShapeDatabase_INFOMR-master"
+input_directory = "./test"
+output_directory = "./test2"
 
 normalize_database(input_directory, output_directory)
 print("finished")
