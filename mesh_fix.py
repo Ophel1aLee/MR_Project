@@ -14,26 +14,27 @@ def mesh_fix(mesh_path, save_path):
         print(f"Reading mesh from {mesh_path}")
         mesh = o3d.io.read_triangle_mesh(mesh_path)
 
-        if not mesh.has_triangles():
-            print(f"Error: Mesh {mesh_path} has no triangles.")
-            return
-
         # 转换 open3d 网格为 numpy 数组形式
         # Convert open3d mesh to numpy array
         vertices = np.asarray(mesh.vertices)
-        triangles = np.asarray(mesh.triangles)
 
-        # 检查顶点和面是否有效
-        # Check if vertices and faces are valid
-        if len(vertices) == 0 or len(triangles) == 0:
-            print(f"Error: Mesh {mesh_path} has no vertices or faces.")
-            return False
+        unique_vertices, indices = np.unique(vertices, axis=0, return_inverse=True)
+        # 更新三角形面，替换为新的顶点索引
+        triangles = np.asarray(mesh.triangles)
+        new_triangles = indices[triangles]
+
+        # 创建新的网格
+        merged_mesh = o3d.geometry.TriangleMesh()
+        merged_mesh.vertices = o3d.utility.Vector3dVector(unique_vertices)
+        merged_mesh.triangles = o3d.utility.Vector3iVector(new_triangles)
+        merged_mesh.compute_vertex_normals()
 
         # 使用 pymeshfix 修复网格中的非流形问题和孔洞
         # Use pymeshfix to fix non-manifold issues and holes in the mesh
         print("Running pymeshfix repair...")
-        meshfix = pymeshfix.MeshFix(vertices, triangles)
+        meshfix = pymeshfix.MeshFix(unique_vertices, new_triangles)
         meshfix.repair(verbose=True)  # 执行修复
+
 
         # 使用修复后的顶点和面创建新的 open3d 网格
         # Create a new open3d mesh using the repaired vertices and faces
@@ -84,8 +85,8 @@ def fix_database(input_dir, output_dir):
                 shutil.copy2(input_file_path, output_file_path)
 
 # Call the function to fix the mesh
-input_directory = "./ShapeDatabase_INFOMR-master"
-output_directory = "./fixed_ShapeDatabase_INFOMR-master"
+input_directory = "./ShapeDatabase_demo"
+output_directory = "./ShapeDatabase_demo_fixed"
 
 fix_database(input_directory, output_directory)
 print("finished")
