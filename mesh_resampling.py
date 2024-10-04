@@ -2,7 +2,7 @@ import pymeshlab as pml
 import os
 import shutil
 
-
+# pip install pymeshlab==2022.2
 # 重采样模型
 # Resampling model
 def mesh_resampling(mesh, target_vertices=5000, tolerance=200, max_iterations=10):
@@ -62,8 +62,8 @@ def process_models_in_folder(input_folder, output_folder, target_vertices, toler
                 print(f"Saved processed mesh to {output_file_path}")
 
 
-input_folder = './fixed_ShapeDatabase_INFOMR-master'
-output_folder = './resampled_ShapeDatabase'
+input_folder = './ShapeDatabase_INFOMR-master'
+output_folder = './'
 
 # 设置目标顶点数和容差
 # Setting target vertices and tolerance
