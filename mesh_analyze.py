@@ -2,12 +2,11 @@ import open3d as o3d
 import numpy as np
 import pandas as pd
 import os
-import time
-import glob
+import argparse
 
 # 缓存文件的路径
 # Path for cached data
-CACHE_FILE = "mesh_analysis_cache.csv"
+CACHE_FILE = "mesh_analysis_cache_resampled.csv"
 
 # 读取模型并通过顶点和三角形评估网格属性
 # Load mesh and evaluate mesh properties through vertices and triangles
@@ -80,17 +79,63 @@ def analyze_mesh_in_folder(folder_path):
 
 # 检查是否存在缓存文件，如果有则加载缓存，没有则重新分析
 # Check if there are cache files, load cache if there are, reanalyze if not
-def load_or_analyze_mesh(folder_path):
-    if os.path.exists(CACHE_FILE):
-        print(f"Loading cached analysis from {CACHE_FILE}")
-        mesh_df = pd.read_csv(CACHE_FILE)
+def load_or_analyze_mesh(folder_path, output_path):
+    if os.path.exists(output_path):
+        print(f"Loading cached analysis from {output_path}")
+        mesh_df = pd.read_csv(output_path)
     else:
         print(f"No cache found, analyzing meshes in folder {folder_path}")
         mesh_df = analyze_mesh_in_folder(folder_path)
-        mesh_df.to_csv(CACHE_FILE, index=False)
-        print(f"Analysis saved to cache file: {CACHE_FILE}")
+        mesh_df.to_csv(output_path, index=False)
+        print(f"Analysis saved to cache file: {output_path}")
 
     return mesh_df
 
-folder_path = "./ShapeDatabase_INFOMR-master"
-mesh_df = load_or_analyze_mesh(folder_path)
+def count_defects(folder_path):
+    non_edge_manifold = 0
+    non_vert_manifold = 0
+    both = 0
+
+    for root, dirs, files in os.walk(folder_path):
+        print(f"Checking files in {root}")
+        for file in files:
+            if file.endswith('.obj'):
+                file_path = os.path.join(root, file)
+                shape_class = os.path.basename(os.path.dirname(file_path))
+                try:
+                    mesh = o3d.io.read_triangle_mesh(file_path)
+                    mesh.compute_vertex_normals()
+
+                    non_edge_man = not mesh.is_edge_manifold()
+                    non_vert_man = not mesh.is_vertex_manifold()
+
+                    if non_edge_man and non_vert_man:
+                        both += 1
+                    elif non_edge_man:
+                        non_edge_manifold += 1
+                    elif non_vert_man:
+                        non_vert_manifold += 1
+                except Exception as e:
+                    print(f"Error loading {file_path}: {e}")
+    
+    print(f"Non-edge-manifold meshes: {non_edge_manifold}")
+    print(f"Non-vertex-manifold meshes: {non_vert_manifold}")
+    print(f"Both: {both}")
+
+
+#folder_path = "./ShapeDatabase_INFOMR-master"
+#mesh_df = load_or_analyze_mesh(folder_path)
+
+#count_defects(folder_path)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--command', help='"analyze": full analysis of the DB; "count_defects": Only count number of broken shapes', default="count_defects")
+    parser.add_argument('--path', help='Path to root folder of the database', default="ShapeDatabase_INFOMR-master")
+    parser.add_argument('--output', help='Name of output csv file', default="mesh_analysis_cache.csv")
+    args = parser.parse_args()
+
+    if args.command == 'analyze':
+        load_or_analyze_mesh(args.path, args.output)
+    elif args.command == 'count_defects':
+        count_defects(args.path)

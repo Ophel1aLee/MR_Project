@@ -4,6 +4,7 @@ import os
 import tkinter as tk
 from tkinter import colorchooser, ttk
 import pandas as pd
+import argparse
 
 # 加载模型的函数
 # Function to load the mesh
@@ -70,11 +71,11 @@ CACHE_FILE = "mesh_analysis_cache.csv"
 
 # 加载缓存数据
 # Load cache data
-def load_cached_data():
-    if os.path.exists(CACHE_FILE):
-        return pd.read_csv(CACHE_FILE)
+def load_cached_data(file_path):
+    if os.path.exists(file_path):
+        return pd.read_csv(file_path)
     else:
-        raise FileNotFoundError(f"Cache file {CACHE_FILE} not found.")
+        raise FileNotFoundError(f"Cache file {file_path} not found.")
 
 # GUI
 class MeshViewerApp:
@@ -128,30 +129,28 @@ class MeshViewerApp:
         # 创建一个右侧的选项区域
         # Create a left selection area
         options_frame = tk.Frame(main_frame)
-        options_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=10)
-
-        # 背景颜色选择
-        # Choose background color
-        tk.Label(options_frame, text="Background Color:").pack(pady=5, padx=150)
-        tk.Button(options_frame, text="Choose Color", command=self.choose_bg_color).pack(pady=5)
+        options_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, padx=10)
 
         # 坐标轴开关
         # Show axes or not
         self.axes_var = tk.IntVar()
         axes_checkbox = tk.Checkbutton(options_frame, text="Show World Axes", variable=self.axes_var)
-        axes_checkbox.pack(pady=10)
+        axes_checkbox.pack(side=tk.TOP, pady=5)
 
         # 显示模式选择
         # set display mode
-        tk.Label(options_frame, text="Render Mode:").pack(pady=5)
+        render_mode_frame = tk.Frame(options_frame)
+        tk.Label(render_mode_frame, text="Render Mode:").pack(side=tk.LEFT)
         self.render_mode = tk.StringVar(value="smoothshade")
         render_options = ["smoothshade", "wireframe_on_shaded", "wireframe"]
-        tk.OptionMenu(options_frame, self.render_mode, *render_options).pack(pady=5)
+        tk.OptionMenu(render_mode_frame, self.render_mode,*render_options).pack(side=tk.LEFT)
 
         # 加载模型按钮
         # Button for loading mesh
         load_button = tk.Button(options_frame, text="Load Selected Mesh", command=self.load_selected_mesh)
-        load_button.pack(pady=10)
+        load_button.pack(side=tk.BOTTOM, pady=10)
+
+        render_mode_frame.pack(side=tk.BOTTOM, pady=5)
 
         # 绑定点击事件，点击某个模型时加载并显示
         # Load when clicking "Load Selected Mesh"
@@ -205,9 +204,13 @@ class MeshViewerApp:
 # 运行GUI
 # Run GUI
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--path', help='Path to the shape data file (CSV)', default="mesh_analysis_cache.csv")
+    args = parser.parse_args()
+    
     # 加载缓存数据
     # Load cached data
-    mesh_df = load_cached_data()
+    mesh_df = load_cached_data(args.path)
 
     # 启动 Tkinter 应用
     # Run Tkinter
