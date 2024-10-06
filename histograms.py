@@ -3,63 +3,100 @@ import matplotlib.pyplot as plt
 import numpy as np
 import open3d as o3d
 import math
-
+import argparse
 
 def nbins(n) -> int:
     return int(math.sqrt(len(n)))
 
-data = pd.read_csv("mesh_analysis_cache.csv")
+def printStats(variable, data: list[float | int]):
+    print(variable)
+    print("\t Mean: " + str(np.average(data)))
+    print("\t SD: " + str(math.sqrt(np.var(data))))
 
-number_verts = data['vertices']
-number_faces = data['triangles']
-classes = data['class']
-edge_var = data['edge_var']
+def makeHist(title: str, xlabel: str, data: list[float | int]):
+    plt.hist(data, bins=nbins(data), color="C0")
+    plt.title(title)
+    plt.xlabel(xlabel)
+    filename = title.lower().replace(" ", "_")
+    plt.savefig(f"figures/{filename}_{version}.png")
+    plt.show()
 
-avg_verts = number_verts.sum() / number_verts.size
-avg_faces = number_faces.sum() / number_faces.size
-avg_edge_var = edge_var.sum() / edge_var.size
+def analyze_sample_count():
+    print("== Analyzing sample count ==")
+    number_verts = cache_data['vertices']
+    number_faces = cache_data['triangles']
 
-print("Average vertices: " + str(avg_verts))
-print("Std dev: " + str(math.sqrt(np.var(number_verts))))
-print("Average faces: " + str(avg_faces))
-print("Std dev: " + str(math.sqrt(np.var(number_faces))))
-print("Average Edge var: " + str(avg_edge_var))
-print("SD: " + str(math.sqrt(np.var(edge_var))))
+    printStats("Vertices", number_verts)
+    printStats("Faces", number_faces)
+    makeHist("Number of Vertices", "Vertex Count", number_verts)
+    makeHist("Number of Faces", "Face Count", number_faces)
 
-volumes = []
-toolarge = []
+def analyze_edge_variance():
+    print("== Analyzing edge variance ==")
+    edge_var = cache_data['edge_var']
+    edge_var_trunc = []
 
-max_sides = []
+    for e in edge_var:
+        if e < 1:
+            edge_var_trunc.append(e)
+    
+    printStats("Edge Variance", edge_var_trunc)
+    makeHist("Edge Length Variance", "Variances", edge_var_trunc)
 
-for i in range(len(classes)):
-    max_side = max([abs(data['minx'][i] - data['maxx'][i]), \
-            abs(data['miny'][i] - data['maxy'][i]), \
-            abs(data['minz'][i] - data['maxz'][i])])
-    if max_side < 20:
-        max_sides.append(max_side)
-    else:
-        toolarge.append(max_side)
+def analyze_translation():
+    print("Analyzing translation")
 
-edge_var_trunc = []
+def analyze_rotation():
+    print("Analyzing rotation")
 
-for e in edge_var:
-    if e < 1:
-        edge_var_trunc.append(e)
+def analyze_scale():
+    print("== Analyzing scale ==")
+    toolarge = 0
 
-number_verts.plot.hist(bins=nbins(number_verts))
-plt.show()
-number_faces.plot.hist(bins=nbins(number_faces))
-plt.show()
-#bins = np.arange(min(edge_var), max(edge_var) + .01, .01)
-plt.hist(edge_var_trunc, bins=nbins(edge_var_trunc))
-plt.show()
-classes.value_counts().plot.bar()
-plt.show()
-print(np.average(max_sides))
-print(np.var(max_sides))
-print(f"Too large: {len(toolarge)}")
-print(toolarge)
-bins = np.arange(min(max_sides), max(max_sides) + .1, .1)
-plt.hist(max_sides, bins=nbins(max_sides))
-plt.show()
+    max_sides = []
 
+    for i in range(len(cache_data['minx'])):
+        max_side = max([abs(cache_data['minx'][i] - cache_data['maxx'][i]), \
+                abs(cache_data['miny'][i] - cache_data['maxy'][i]), \
+                abs(cache_data['minz'][i] - cache_data['maxz'][i])])
+        if max_side < 20:
+            max_sides.append(max_side)
+        else:
+            toolarge += 1
+
+    printStats("AABB Length", max_sides)
+    print(f"\t Discarded: {toolarge}")
+    makeHist("AABB Length", "L_max", max_sides)
+
+
+def analyze_flip_direction():
+    print("Analyzing flip direction")
+
+def main(values: list[str]):
+    all_values = ["sample_count", "edge_variance", "translation", "rotation", "scale", "flip"]
+    all_functions = [analyze_sample_count, analyze_edge_variance, analyze_translation, analyze_rotation, analyze_scale, analyze_flip_direction]
+
+    operations = zip(all_values, all_functions)
+
+    print("======================")
+
+    for (v, f) in operations:
+        if v in values:
+            f()
+            print("======================")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version', help='Version of the database to be analyzed (original, fixed, resampled, normalized) (default=original)', default='original')
+    parser.add_argument('--values', help='Comma-separated list of values to be analyzed (sample_count, edge_variance, translation, rotation, scale, flip)(default=all)',
+                        default='sample_count, edge_variance, translation, rotation, scale, flip')
+    args = parser.parse_args()
+
+    version = args.version
+    cache_file = f"mesh_analysis_cache_{args.version}.csv"
+    cache_data = pd.read_csv(cache_file)
+
+    # remove all whitespace in the string, and split it on comma chars
+    values = "".join(args.values.split()).split(',')
+
+    main(values)
