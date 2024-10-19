@@ -5,6 +5,8 @@ import open3d as o3d
 import math
 import argparse
 
+from mesh_normalize import triangleCenter, sign
+
 def nbins(n) -> int:
     return int(math.sqrt(len(n)))
 
@@ -13,8 +15,10 @@ def printStats(variable, data: list[float | int]):
     print("\t Mean: " + str(np.average(data)))
     print("\t SD: " + str(math.sqrt(np.var(data))))
 
-def makeHist(title: str, xlabel: str, data: list[float | int]):
-    plt.hist(data, bins=nbins(data), color="C0")
+def makeHist(title: str, xlabel: str, data: list[float | int], bins: list[float] | None = None):
+    b = nbins(data) if bins is None else bins
+    print("Number of bins: " + str(b))
+    plt.hist(data, bins=b, color="C0")
     plt.title(title)
     plt.xlabel(xlabel)
     filename = title.lower().replace(" ", "_")
@@ -58,7 +62,7 @@ def analyze_translation():
             print(dist)
     
     printStats("Distance to World Origin", distances)
-    makeHist("Distance to World Origin", "Distances", distances)
+    makeHist("Distance to World Origin", "Distances", distances, np.arange(0, 5, 0.1, float))
 
 def analyze_rotation():
     print("== Analyzing rotation ==")
@@ -68,31 +72,54 @@ def analyze_rotation():
     dotzs = []
 
     invalid = 0
+    incorrect = 0
+    total = len(paths)
 
     for p in paths:
         mesh = o3d.io.read_triangle_mesh(p)
-        covariance = np.cov(np.array(mesh.vertices).T)
+        covariance = np.cov(np.asarray(mesh.vertices).T)
+
         
         try:
-            _, eigenvectors = np.linalg.eigh(covariance)
-            l1 = eigenvectors[:, 0] # x
-            l2 = eigenvectors[:, 1] # y
-            l3 = eigenvectors[:, 2] # z
+            eigenvalues, eigenvectors = np.linalg.eig(covariance)
+            eigencombined = [(eigenvalues[i], eigenvectors[:, i]) for i in range(3)]
+            eigencombined.sort(key=lambda x: x[0], reverse=True)
+            eigenvectors = [item[1] for item in eigencombined]
+            eigenvalues = [item[0] for item in eigencombined]
 
-            dotxs.append(np.dot(l1, np.array((1, 0, 0))))
-            dotys.append(np.dot(l2, np.array((0, 1, 0))))
-            dotzs.append(np.dot(l3, np.array((0, 0, 1))))
+            eigenvectors.pop(2)
+            eigenvectors.append(np.cross(eigenvectors[0], eigenvectors[1]))
+
+            ev = eigenvectors
+
+            l1 = ev[0]
+            l2 = ev[1]
+            l3 = np.cross(l1, l2)
+
+            dotx = abs(np.dot(l1, np.array((1, 0, 0))))
+            doty = abs(np.dot(l2, np.array((0, 1, 0))))
+            dotz = abs(np.dot(l3, np.array((0, 0, 1))))
+
+            dotxs.append(dotx)
+            dotys.append(doty)
+            dotzs.append(dotz)
+
+            if dotx < 0.9 or doty < 0.9 or dotz < 0.9:
+                incorrect += 1
+                print(p)
+
         except:
             invalid += 1
     
-    printStats("Dot l1 x", dotxs)
-    printStats("Dot l2 y", dotys)
-    printStats("Dot l3 z", dotzs)
+    printStats("Dot e_1 x", dotxs)
+    printStats("Dot e_2 y", dotys)
+    printStats("Dot e_3 z", dotzs)
     print("\t Invalid: " + str(invalid))
+    print(f"\t Incorrect: {incorrect}/{total}")
 
-    makeHist("Dot Product L1", "L1 . x", dotxs)
-    makeHist("Dot Product L2", "L2 . y", dotys)
-    makeHist("Dot Product L3", "L3 . z", dotzs)
+    makeHist("Dot Product e_1", "e_1 . x", dotxs, np.arange(0, 1.02, 0.02, float))
+    makeHist("Dot Product e_2", "e_2 . y", dotys, np.arange(0, 1.02, 0.02, float))
+    makeHist("Dot Product e_3", "e_3 . z", dotzs, np.arange(0, 1.02, 0.02, float))
 
 def analyze_scale():
     print("== Analyzing scale ==")
@@ -111,7 +138,8 @@ def analyze_scale():
 
     printStats("AABB Length", max_sides)
     print(f"\t Discarded: {toolarge}")
-    makeHist("AABB Length", "L_max", max_sides)
+    makeHist("AABB Length", "L_max", max_sides, np.arange(0, 5, 0.1, float))
+
 
 
 def analyze_flip_direction():
@@ -121,25 +149,34 @@ def analyze_flip_direction():
     yspos = ysneg = 0
     zspos = zsneg = 0
 
+    total = 0
+
     invalid = 0
 
     for p in paths:
         mesh = o3d.io.read_triangle_mesh(p)
-        vertices = np.asarray(mesh.vertices)
-        mass_center = np.mean(vertices, axis=0)
+        vertices = np.copy(np.asarray(mesh.vertices))
 
-        if mass_center[0] < 0:  # x
+        fx = fy = fz = 0
+
+        for a, b, c in np.asarray(mesh.triangles):
+            tricenter = triangleCenter(vertices[a], vertices[b], vertices[c])
+            fx += sign(tricenter[0]) * (tricenter[0] * tricenter[0])
+            fy += sign(tricenter[1]) * (tricenter[1] * tricenter[1])
+            fz += sign(tricenter[2]) * (tricenter[2] * tricenter[2])
+        
+        total += 1
+        
+        if sign(fx) == -1:
             xsneg += 1
-        elif mass_center[0] >= 0:
-            xspos += 1
-        if mass_center[1] < 0:  # x
+        if sign(fy) == -1:
             ysneg += 1
-        elif mass_center[1] >= 0:
-            yspos += 1
-        if mass_center[2] < 0:  # x
+        if sign(fz) == -1:
             zsneg += 1
-        elif mass_center[2] >= 0:
-            zspos += 1
+        
+    xspos = total - xsneg
+    yspos = total - ysneg
+    zspos = total - zsneg
 
     fig, ax = plt.subplots(layout='constrained')
     rects = ax.bar(np.array((-1, 1)), np.array((xsneg, xspos)), 0.25, label="x")
@@ -153,7 +190,7 @@ def analyze_flip_direction():
     ax.set_ylabel("Frequency")
     ax.set_xlabel("Direction")
     ax.set_title("Direction of Mass")
-    plt.savefig(f"figures/direction_of_mass_{version}.png")
+    plt.savefig(f"figures/direction_of_mass_{version}.pdf")
     plt.show()
 
 def main(values: list[str]):

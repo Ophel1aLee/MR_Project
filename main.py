@@ -57,12 +57,38 @@ def display_mesh(mesh_path, show_axes, bg_color, vis_option):
         ]
         # List of indices into the 'line_endpoints' list, which describes which endpoints form which line
         line_indices = [[0, 1], [0, 2], [0, 3]]
+        line_colors = [[1,0,0], [0,1,0], [0,0,1]]
         # Create a line set from the endpoints and indices
         world_axes = o3d.geometry.LineSet(
             points=o3d.utility.Vector3dVector(line_endpoints),
             lines=o3d.utility.Vector2iVector(line_indices),
         )
+        world_axes.colors = o3d.utility.Vector3dVector(line_colors)
         vis.add_geometry(world_axes)
+
+    covariance = np.cov(np.asarray(mesh.vertices).T)
+    # 计算特征值和特征向量
+    eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+
+    # 将特征向量按特征值降序排列
+    ev = eigenvectors[:, ::-1]
+
+    l1 = ev[0] / np.linalg.norm(ev[0])
+    l2 = ev[1] / np.linalg.norm(ev[1])
+    l3 = np.cross(l1, l2)
+    l3 = l3 / np.linalg.norm(l3)
+
+    eig_endpoints = [[0,0,0], l1, l2]
+    eig_indices = [[0,1],[0,2]]
+    eig_cols = [[1,1,0], [1,0,1]]
+    eigenvector_lines = o3d.geometry.LineSet(
+        points=o3d.utility.Vector3dVector(eig_endpoints),
+        lines=o3d.utility.Vector2iVector(eig_indices)
+    )
+
+    eigenvector_lines.colors = o3d.utility.Vector3dVector(eig_cols)
+    vis.add_geometry(eigenvector_lines)
+
 
     vis.run()
     vis.destroy_window()
