@@ -17,3 +17,7 @@ plot_histograms_from_csv('descriptors.csv', 'D00138.obj')
 # Normalizing the histograms of the shape descriptors
 from descriptors_processing import histogram_normalizing
 histogram_normalizing("descriptors.csv", "descriptors_normalized.csv", 100)
+
+# Plot histograms for class
+from descriptors_processing import plot_histograms_for_class
+plot_histograms_for_class("descriptors_normalized.csv", "Cup", 100)
