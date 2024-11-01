@@ -54,4 +54,4 @@ def single_value_normalizing(csv_file, output_csv_file):
         df[column] = (df[column] - mean) /std
 
     df.to_csv(output_csv_file, index=False)
-    print("Histogram normalizing finished.")
+    print("Single value normalizing finished.")
