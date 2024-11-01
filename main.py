@@ -14,3 +14,6 @@ calculate_descriptor_for_the_database("ShapeDatabase_Normalized", 150000, 100)
 from visualize_3d_histogram import plot_histograms_from_csv
 plot_histograms_from_csv('descriptors.csv', 'D00138.obj')
 
+# Normalizing the histograms of the shape descriptors
+from descriptors_processing import histogram_normalizing
+histogram_normalizing("descriptors.csv", "descriptors_normalized.csv", 100)
