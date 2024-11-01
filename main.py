@@ -1,11 +1,16 @@
 # Do the resampling
-#from mesh_resampling import resample_database
-#resample_database("ShapeDatabase", "ShapeDatabase_Resampled", 5000, 200)
+from mesh_resampling import resample_database
+resample_database("ShapeDatabase", "ShapeDatabase_Resampled", 5000, 200)
 
 # Do the normalizing
-#from mesh_normalize import normalize_database
-#normalize_database("ShapeDatabase_Resampled", "ShapeDatabase_Normalized")
+from mesh_normalize import normalize_database
+normalize_database("ShapeDatabase_Resampled", "ShapeDatabase_Normalized")
 
 # Calculate the descriptors for the whole database
 from mesh_descriptors import calculate_descriptor_for_the_database
 calculate_descriptor_for_the_database("ShapeDatabase_Normalized", 150000, 100)
+
+# Extract 3D property descriptors histogram datas and plot from the CSV file
+from visualize_3d_histogram import plot_histograms_from_csv
+plot_histograms_from_csv('descriptors.csv', 'D00138.obj')
+
