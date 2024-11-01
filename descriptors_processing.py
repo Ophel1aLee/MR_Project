@@ -1,5 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from streamlit import columns
+
+from standardization import columns_to_standardize, means
 
 
 def histogram_normalizing(csv_file, output_csv_file, histogram_bins):
@@ -40,3 +43,15 @@ def plot_histograms_for_class(csv_file, class_name, histogram_bins):
         plt.ylabel('Normalized Frequency')
     plt.tight_layout()
     plt.show()
+
+
+def single_value_normalizing(csv_file, output_csv_file):
+    df = pd.read_csv(csv_file)
+    columns_to_standardize = df.columns[2:8]
+    for column in columns_to_standardize:
+        mean = df[column].mean()
+        std = df[column].std()
+        df[column] = (df[column] - mean) /std
+
+    df.to_csv(output_csv_file, index=False)
+    print("Histogram normalizing finished.")
