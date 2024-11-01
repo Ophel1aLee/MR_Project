@@ -21,3 +21,7 @@ histogram_normalizing("descriptors.csv", "descriptors_normalized.csv", 100)
 # Plot histograms for class
 from descriptors_processing import plot_histograms_for_class
 plot_histograms_for_class("descriptors_normalized.csv", "Cup", 100)
+
+# Normalizing the single descriptors of the 3D descriptors
+from descriptors_processing import single_value_normalizing
+single_value_normalizing("descriptors_normalized.csv", "descriptors_standardized.csv")
