@@ -8,7 +8,6 @@ import trimesh
 import pymeshlab as pml
 import pandas as pd
 
-from property_descriptors import global_property_descriptors, calculate_A3, calculate_D1, calculate_D2, calculate_D3, calculate_D4
 from querying import mesh_resampling, compute_descriptors, load_standardization_stats, standardize_descriptors, compute_distance
 from mesh_normalize import mesh_normalize
 
