@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def histogram_normalizing(csv_file, output_csv_file, histogram_bins):
@@ -15,4 +16,27 @@ def histogram_normalizing(csv_file, output_csv_file, histogram_bins):
     print("Histogram normalizing finished.")
 
 
-histogram_normalizing("descriptors.csv", 100)
+def plot_histograms_for_class(csv_file, class_name, histogram_bins):
+    df = pd.read_csv(csv_file)
+    # Filter the DataFrame for the given class name
+    class_column_name = df.columns[0]
+    class_data = df[df[class_column_name] == class_name]
+    num_histograms = 5
+    histogram_names = ['A3', 'D1', 'D2', 'D3', 'D4']
+
+    if class_data.empty:
+        print(f"Class '{class_name}' not found in the dataset.")
+        return
+
+    # Plot each histogram type for all models of the given class
+    plt.figure(figsize=(15, 10))
+    for i in range(num_histograms):
+        plt.subplot(num_histograms, 1, i + 1)
+        for index, row in class_data.iterrows():
+            histogram_cols = row[8 + i * histogram_bins: 8 + (i + 1) * histogram_bins]
+            plt.plot(histogram_cols, alpha=0.7)
+        plt.title(f'Histogram {histogram_names[i]} for class: {class_name}')
+        plt.xlabel('Bins')
+        plt.ylabel('Normalized Frequency')
+    plt.tight_layout()
+    plt.show()
