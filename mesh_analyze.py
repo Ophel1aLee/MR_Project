@@ -64,7 +64,8 @@ def analyze_mesh_in_folder(folder_path):
                 try:
                     # print(f"Loading mesh: {file_path}")
                     # start_time = time.time()
-                    mesh = o3d.io.read_triangle_mesh(file_path)
+                    mesh = o3d.io.read_triangle_mesh(file_path, enable_post_processing=True)
+                    mesh = mesh.remove_duplicated_vertices()
                     mesh.compute_vertex_normals()
                     mesh_info = analyze_mesh(mesh, file_path, shape_class)
                     mesh_data.append(mesh_info)
@@ -103,7 +104,7 @@ def count_defects(folder_path):
                 file_path = os.path.join(root, file)
                 shape_class = os.path.basename(os.path.dirname(file_path))
                 try:
-                    mesh = o3d.io.read_triangle_mesh(file_path)
+                    mesh = o3d.io.read_triangle_mesh(file_path, enable_post_processing=True)
                     mesh.compute_vertex_normals()
 
                     non_edge_man = not mesh.is_edge_manifold()
@@ -131,8 +132,8 @@ def count_defects(folder_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--command', help='"analyze": full analysis of the DB; "count_defects": Only count number of broken shapes', default="count_defects")
-    parser.add_argument('--path', help='Path to root folder of the database', default="ShapeDatabase_INFOMR-master")
-    parser.add_argument('--output', help='Name of output csv file', default="mesh_analysis_cache.csv")
+    parser.add_argument('--path', help='Path to root folder of the database', default="./ShapeDatabase_Normalized")
+    parser.add_argument('--output', help='Name of output csv file', default="./mesh_analysis_cache_normalized.csv")
     args = parser.parse_args()
 
     if args.command == 'analyze':

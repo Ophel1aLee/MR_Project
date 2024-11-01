@@ -77,9 +77,6 @@ def sign(n):
 def mesh_flipping(mesh):
     # 计算模型在每个轴的质量分布
     vertices = np.copy(np.asarray(mesh.vertices))
-    mass_center = np.mean(vertices, axis=0)
-
-    signs = np.ones(3)
 
     fx = fy = fz = 0
 
@@ -151,13 +148,8 @@ def normalize_database(input_dir, output_dir):
     print(f"Finished normalization ({failed} failed shapes)")
 
 if __name__ == '__main__':
-    input_directory = "./TEST_Database_resampled"
-    output_directory = "./TEST_Database_normalized"
+    input_directory = "./resampled_ShapeDatabase_INFOMR-master"
+    output_directory = "./normalized_ShapeDatabase_INFOMR-master"
 
     normalize_database(input_directory, output_directory)
     print("finished")
-
-
-
-
-

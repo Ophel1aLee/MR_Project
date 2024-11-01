@@ -53,7 +53,8 @@ def analyze_translation():
     distances = []
 
     for p in paths:
-        mesh = o3d.io.read_triangle_mesh(p)
+        mesh = o3d.io.read_triangle_mesh(p, enable_post_processing=True)
+        mesh = mesh.remove_duplicated_vertices()
         centroid = mesh.get_center()
         dist = np.linalg.norm(centroid - np.array((0,0,0)))
         if dist < 20:
@@ -76,7 +77,8 @@ def analyze_rotation():
     total = len(paths)
 
     for p in paths:
-        mesh = o3d.io.read_triangle_mesh(p)
+        mesh = o3d.io.read_triangle_mesh(p, enable_post_processing=True)
+        mesh = mesh.remove_duplicated_vertices()
         covariance = np.cov(np.asarray(mesh.vertices).T)
 
         
@@ -154,7 +156,8 @@ def analyze_flip_direction():
     invalid = 0
 
     for p in paths:
-        mesh = o3d.io.read_triangle_mesh(p)
+        mesh = o3d.io.read_triangle_mesh(p, enable_post_processing=True)
+        mesh = mesh.remove_duplicated_vertices()
         vertices = np.copy(np.asarray(mesh.vertices))
 
         fx = fy = fz = 0
