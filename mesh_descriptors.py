@@ -55,8 +55,8 @@ def three_d_property_descriptors(mesh):
     eigenvalues, _ = np.linalg.eig(covariance_matrix)
     eccentricity = max(eigenvalues) / min(eigenvalues)
 
-    print(mesh_volume)
-    print(obb_volume)
+    # print(mesh_volume)
+    # print(obb_volume)
     return (surface_area, compactness, rectangularity, diameter, convexity, eccentricity)
 
 
