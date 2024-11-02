@@ -2,9 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from streamlit import columns
 
-from standardization import columns_to_standardize, means
-
-
 def histogram_normalizing(csv_file, output_csv_file, histogram_bins):
     df = pd.read_csv(csv_file)
     num_bins = histogram_bins

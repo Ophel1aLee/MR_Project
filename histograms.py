@@ -32,8 +32,10 @@ def analyze_sample_count():
 
     printStats("Vertices", number_verts)
     printStats("Faces", number_faces)
-    makeHist("Number of Vertices", "Vertex Count", number_verts)
-    makeHist("Number of Faces", "Face Count", number_faces)
+    makeHist("Number of Vertices", "Vertex Count",
+             number_verts, np.arange(0, 50000, 1000, float))
+    makeHist("Number of Faces", "Face Count",
+             number_faces, np.arange(0, 50000, 1000, float))
 
 def analyze_edge_variance():
     print("== Analyzing edge variance ==")
@@ -45,7 +47,8 @@ def analyze_edge_variance():
             edge_var_trunc.append(e)
     
     printStats("Edge Variance", edge_var_trunc)
-    makeHist("Edge Length Variance", "Variances", edge_var_trunc)
+    makeHist("Edge Length Variance", "Variances",
+             edge_var_trunc, np.arange(0, 1.02, 0.02, float))
 
 def analyze_translation():
     print("== Analyzing translation ==")
