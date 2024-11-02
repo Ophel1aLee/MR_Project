@@ -1,36 +1,52 @@
+import open3d.cpu.pybind.io
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
+import open3d as o3d
+from mesh_resampling import mesh_resampling
+from mesh_normalize import mesh_normalize_for_new
+from mesh_descriptors import  three_d_property_descriptors, shape_property_descriptors
+import trimesh
+import pymeshlab as pml
 
 
-def mesh_querying(model_file_name, csv_path):
+def mesh_querying(model_file_name, csv_path, stats_path):
     data = pd.read_csv(csv_path)
 
-    model_row = data[data['file_name'] == model_file_name]
-    if model_row.empty:
-        return f"Model file '{model_file_name}' not found in the CSV file."
-    class_name = model_row['class_name'].values[0]
-    model_features = model_row.iloc[:, 2:].values
+    if model_file_name not in data['file_name'].values:
+        descriptors = process_new_model(model_file_name, stats_path)
+        all_features = data.iloc[:, 2:].values
+        distances = euclidean_distances([descriptors], all_features)[0]
+        closest_indices = np.argsort(distances)[:4]
+        closest_models = data.iloc[closest_indices][['class_name', 'file_name']].values
+        closest_distances = distances[closest_indices]
+        return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
 
-    # Filter the dataset to contain only models from the same class
-    class_data = data[data['class_name'] == class_name]
-    # Remove the target model itself from the dataset for comparison
-    class_data_filtered = class_data[class_data['file_name'] != model_file_name]
+    else:
+        # Extract the row corresponding to the target model
+        model_row = data[data['file_name'] == model_file_name]
+        class_name = model_row['class_name'].values[0]
+        model_features = model_row.iloc[:, 2:].values
 
-    # Extract features for all models in the same class (excluding the target model)
-    class_features = class_data_filtered.iloc[:, 2:].values
+        # Filter the dataset to contain only models from the same class
+        class_data = data[data['class_name'] == class_name]
+        # Remove the target model itself from the dataset for comparison
+        class_data_filtered = class_data[class_data['file_name'] != model_file_name]
 
-    # Compute Euclidean distances between the target model and all others in the same class
-    distances = euclidean_distances(model_features, class_features)[0]
+        # Extract features for all models in the same class (excluding the target model)
+        class_features = class_data_filtered.iloc[:, 2:].values
 
-    # Get the indices of the four closest models (smallest distances)
-    closest_indices = np.argsort(distances)[:4]
+        # Compute Euclidean distances between the target model and all others in the same class
+        distances = euclidean_distances(model_features, class_features)[0]
 
-    # Retrieve file names of the closest models
-    closest_models = class_data_filtered.iloc[closest_indices]['file_name'].values
-    closest_distances = distances[closest_indices]
+        # Get the indices of the four closest models (smallest distances)
+        closest_indices = np.argsort(distances)[:4]
 
-    return class_name, list(zip(closest_models, closest_distances))
+        # Retrieve file names of the closest models
+        closest_models = class_data_filtered.loc[class_data_filtered.index[closest_indices], ['class_name', 'file_name']].values
+        closest_distances = distances[closest_indices]
+
+        return class_name, list(zip(closest_models, closest_distances))
 
 
 def mesh_querying_global(model_file_name, csv_path):
@@ -58,3 +74,42 @@ def mesh_querying_global(model_file_name, csv_path):
     closest_distances = distances[closest_indices]
 
     return list(zip(closest_models, closest_distances))
+
+
+def process_new_model(input_mesh_path, stats_path):
+    mesh = pml.MeshSet()
+    mesh.load_new_mesh(input_mesh_path)
+    resampled_mesh = mesh_resampling(mesh, 5000, 200, 20)
+    resampled_mesh.save_current_mesh("temp.obj")
+
+    resampled_mesh = o3d.io.read_triangle_mesh("temp.obj")
+    normalized_mesh = mesh_normalize_for_new(resampled_mesh)
+    o3d.io.write_triangle_mesh("temp.obj", normalized_mesh, write_vertex_normals=True)
+
+    normalized_mesh = trimesh.load("temp.obj")
+    surface_area, compactness, rectangularity, diameter, convexity, eccentricity = three_d_property_descriptors(normalized_mesh)
+    A3_hist, D1_hist, D2_hist, D3_hist, D4_hist = shape_property_descriptors(normalized_mesh, 150000, 100)
+
+    # Standardize single-value descriptors
+    stats = pd.read_csv(stats_path)
+    single_value_descriptors = [surface_area, compactness, rectangularity, diameter, convexity, eccentricity]
+    standardized_descriptors = []
+    for i, descriptor in enumerate(single_value_descriptors):
+        mean = stats.loc[i, 'mean']
+        std = stats.loc[i, 'std']
+        standardized_value = (descriptor - mean) / std
+        standardized_descriptors.append(standardized_value)
+
+    # Normalize histogram descriptors
+    A3_hist = A3_hist / np.sum(A3_hist)
+    D1_hist = D1_hist / np.sum(D1_hist)
+    D2_hist = D2_hist / np.sum(D2_hist)
+    D3_hist = D3_hist / np.sum(D3_hist)
+    D4_hist = D4_hist / np.sum(D4_hist)
+
+    descriptors = [
+        *standardized_descriptors,
+        *A3_hist, *D1_hist, *D2_hist, *D3_hist, *D4_hist
+    ]
+
+    return descriptors
