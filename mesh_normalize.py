@@ -118,6 +118,14 @@ def mesh_normalize(mesh_path, save_path):
     o3d.io.write_triangle_mesh(save_path, mesh, write_vertex_normals=True)
 
 
+def mesh_normalize_for_new(mesh):
+    mesh = mesh_translate(mesh)
+    mesh = mesh_pose_alignment(mesh)
+    mesh = mesh_flipping(mesh)
+    mesh = mesh_resize(mesh)
+    return mesh
+
+
 def normalize_database(input_folder, output_folder):
     input_dir = Path(input_folder)
     output_dir = Path(output_folder)
