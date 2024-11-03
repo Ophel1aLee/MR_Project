@@ -6,47 +6,49 @@ import open3d as o3d
 from mesh_resampling import mesh_resampling
 from mesh_normalize import mesh_normalize_for_new
 from mesh_descriptors import  three_d_property_descriptors, shape_property_descriptors
+from dimension_reduction import ann
 import trimesh
 import pymeshlab as pml
+import pickle
 
 
 def mesh_querying(model_file_name, csv_path, stats_path):
     data = pd.read_csv(csv_path)
 
-    if model_file_name not in data['file_name'].values:
-        descriptors = process_new_model(model_file_name, stats_path)
-        all_features = data.iloc[:, 2:].values
-        distances = euclidean_distances([descriptors], all_features)[0]
-        closest_indices = np.argsort(distances)[:4]
-        closest_models = data.iloc[closest_indices][['class_name', 'file_name']].values
-        closest_distances = distances[closest_indices]
-        return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
+    #if model_file_name not in data['file_name'].values:
+    descriptors = process_new_model(model_file_name, stats_path)
+    all_features = data.iloc[:, 2:].values
+    distances = euclidean_distances([descriptors], all_features)[0]
+    closest_indices = np.argsort(distances)[:4]
+    closest_models = data.iloc[closest_indices][['class_name', 'file_name']].values
+    closest_distances = distances[closest_indices]
+    return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
 
-    else:
-        # Extract the row corresponding to the target model
-        model_row = data[data['file_name'] == model_file_name]
-        class_name = model_row['class_name'].values[0]
-        model_features = model_row.iloc[:, 2:].values
+    # else:
+    #     # Extract the row corresponding to the target model
+    #     model_row = data[data['file_name'] == model_file_name]
+    #     class_name = model_row['class_name'].values[0]
+    #     model_features = model_row.iloc[:, 2:].values
 
-        # Filter the dataset to contain only models from the same class
-        class_data = data[data['class_name'] == class_name]
-        # Remove the target model itself from the dataset for comparison
-        class_data_filtered = class_data[class_data['file_name'] != model_file_name]
+    #     # Filter the dataset to contain only models from the same class
+    #     class_data = data[data['class_name'] == class_name]
+    #     # Remove the target model itself from the dataset for comparison
+    #     class_data_filtered = class_data[class_data['file_name'] != model_file_name]
 
-        # Extract features for all models in the same class (excluding the target model)
-        class_features = class_data_filtered.iloc[:, 2:].values
+    #     # Extract features for all models in the same class (excluding the target model)
+    #     class_features = class_data_filtered.iloc[:, 2:].values
 
-        # Compute Euclidean distances between the target model and all others in the same class
-        distances = euclidean_distances(model_features, class_features)[0]
+    #     # Compute Euclidean distances between the target model and all others in the same class
+    #     distances = euclidean_distances(model_features, class_features)[0]
 
-        # Get the indices of the four closest models (smallest distances)
-        closest_indices = np.argsort(distances)[:4]
+    #     # Get the indices of the four closest models (smallest distances)
+    #     closest_indices = np.argsort(distances)[:4]
 
-        # Retrieve file names of the closest models
-        closest_models = class_data_filtered.loc[class_data_filtered.index[closest_indices], ['class_name', 'file_name']].values
-        closest_distances = distances[closest_indices]
+    #     # Retrieve file names of the closest models
+    #     closest_models = class_data_filtered.loc[class_data_filtered.index[closest_indices], ['class_name', 'file_name']].values
+    #     closest_distances = distances[closest_indices]
 
-        return class_name, list(zip(closest_models, closest_distances))
+    #     return class_name, list(zip(closest_models, closest_distances))
 
 
 def mesh_querying_global(model_file_name, csv_path):
@@ -113,3 +115,18 @@ def process_new_model(input_mesh_path, stats_path):
     ]
 
     return descriptors
+
+def fast_query(input_mesh_path, stats_path, descriptors_path):
+    descriptors = process_new_model(input_mesh_path, stats_path)
+    umap_model = pickle.load((open('umap_model.sav', 'rb')))
+    db_descriptors = pd.read_csv(descriptors_path)
+    db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
+
+    indices, distances = ann(umap_model, db_points, descriptors, 4)
+
+    closest_models = db_descriptors.iloc[indices[0,:]][['class_name', 'file_name']].values
+    closest_distances = distances[0,:]
+
+    return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
+
+
