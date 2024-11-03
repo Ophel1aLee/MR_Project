@@ -9,7 +9,7 @@ import trimesh
 import pymeshlab as pml
 import pandas as pd
 
-from mesh_querying import mesh_querying, mesh_querying_global, process_new_model
+from mesh_querying import mesh_querying, mesh_querying_global, process_new_model, fast_query
 
 
 def load_model(file_path):
@@ -46,7 +46,7 @@ def show_3d_model(mesh, width=400):
     st.plotly_chart(fig, key=f'model_plot_{np.random.randint(0, 1000000)}')
 
 
-def match_model(input_mesh_path, csv_path, stats_path):
+def match_model(input_mesh_path, csv_path, stats_path, fastMatch = False):
     st.write("Processing uploaded model...")
 
     query_mesh = load_model(input_mesh_path)
@@ -57,7 +57,10 @@ def match_model(input_mesh_path, csv_path, stats_path):
     model_file_name = os.path.splitext(uploaded_file.name)[0] + '.obj'
 
     # Find similar models using the find_similar_models function
-    class_name, result = mesh_querying(model_file_name, csv_path, stats_path)
+    if fastMatch:
+        class_name, result = fast_query(input_mesh_path, stats_path, "fast_descriptors.csv")
+    else:
+        class_name, result = mesh_querying(input_mesh_path, csv_path, stats_path)
     if isinstance(result, str):
         st.write(result)
         return
@@ -140,6 +143,10 @@ if uploaded_file is not None:
     # match
     if st.sidebar.button("Match Model"):
         match_model(input_mesh_path, "descriptors_standardized.csv", "standardization_stats.csv")
+    
+    if st.sidebar.button("Fast Matching"):
+        match_model(input_mesh_path, "descriptors_standardized.csv",
+                    "standardization_stats.csv", True)
 
 else:
     st.write("Matching Results will be displayed here after uploading a model.")
