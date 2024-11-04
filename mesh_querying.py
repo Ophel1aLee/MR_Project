@@ -96,12 +96,13 @@ def mesh_querying_global(model_file_name, csv_path):
 
 
 def process_new_model(input_mesh_path, stats_path):
-    mesh = pml.MeshSet()
-    mesh.load_new_mesh(input_mesh_path)
-    resampled_mesh = mesh_resampling(mesh, 5000, 200, 20)
-    resampled_mesh.save_current_mesh("temp.obj")
+    #mesh = pml.MeshSet()
+    #mesh.load_new_mesh(input_mesh_path)
+    #resampled_mesh = mesh_resampling(mesh, 5000, 200, 20)
+    #resampled_mesh.save_current_mesh("temp.obj")
 
-    resampled_mesh = o3d.io.read_triangle_mesh("temp.obj")
+    #resampled_mesh = o3d.io.read_triangle_mesh("temp.obj")
+    resampled_mesh = o3d.io.read_triangle_mesh(input_mesh_path)
     normalized_mesh = mesh_normalize_for_new(resampled_mesh)
     o3d.io.write_triangle_mesh("temp.obj", normalized_mesh, write_vertex_normals=True)
 
