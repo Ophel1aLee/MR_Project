@@ -134,17 +134,10 @@ def process_new_model(input_mesh_path, stats_path):
 
     return descriptors
 
-def fast_query(input_mesh_path, stats_path, descriptors_path, K):
+def fast_query(input_mesh_path, stats_path, descriptors_path, ann_index, K):
     descriptors = process_new_model(input_mesh_path, stats_path)
-    #umap_model = pickle.load((open('umap_model.sav', 'rb')))
     db_descriptors = pd.read_csv(descriptors_path)
-    db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
-
-    indices, distances = ann(db_points.to_numpy(), descriptors, K)
-
-    print(indices)
-    print(indices[0,:])
-
+    indices, distances = ann(ann_index, descriptors, K)
     closest_models = db_descriptors.iloc[indices[0,:]][['class_name', 'file_name']].values
     closest_distances = distances[0,:]
 

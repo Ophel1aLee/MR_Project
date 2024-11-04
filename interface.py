@@ -8,6 +8,7 @@ import os
 import trimesh
 import pymeshlab as pml
 import pandas as pd
+from pynndescent import NNDescent
 
 from mesh_querying import mesh_querying, mesh_querying_global, process_new_model, fast_query
 
@@ -46,7 +47,7 @@ def show_3d_model(mesh, width=400):
     st.plotly_chart(fig, key=f'model_plot_{np.random.randint(0, 1000000)}')
 
 
-def match_model(input_mesh_path, csv_path, stats_path, K=4, fastMatch = False):
+def match_model(input_mesh_path, csv_path, stats_path, K=4, fastMatch = False, ann_index: NNDescent = None):
     st.write("Processing uploaded model...")
 
     query_mesh = load_model(input_mesh_path)
@@ -58,7 +59,7 @@ def match_model(input_mesh_path, csv_path, stats_path, K=4, fastMatch = False):
 
     # Find similar models using the find_similar_models function
     if fastMatch:
-        class_name, result = fast_query(input_mesh_path, stats_path, "descriptors_standardized.csv", K)
+        class_name, result = fast_query(input_mesh_path, stats_path, "descriptors_standardized.csv", ann_index, K)
     else:
         class_name, result = mesh_querying(input_mesh_path, csv_path, stats_path, K)
     if isinstance(result, str):
@@ -128,11 +129,24 @@ def match_model_global(input_mesh_path, csv_path):
             show_3d_model(similar_mesh, width=600)
 
 
+@st.cache_resource
+def set_ann_index():
+    print("test")
+    db_descriptors = pd.read_csv("descriptors_standardized.csv")
+    db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
+    shape_count = db_descriptors['class_name'].size
+    class_count = db_descriptors['class_name'].unique().size
+    index = NNDescent(db_points.to_numpy(), leaf_size=int(shape_count/class_count), metric='manhattan')
+    index.prepare()
+    return index
+
 # Streamlit
 # left side: upload
 with st.sidebar:
     st.header("Upload a 3D Model")
     uploaded_file = st.file_uploader("Upload a 3D OBJ file", type="obj")
+
+index = set_ann_index()
 
     # right
 if uploaded_file is not None:
@@ -148,7 +162,7 @@ if uploaded_file is not None:
     
     if st.sidebar.button("Fast Matching"):
         match_model(input_mesh_path, "descriptors_standardized.csv",
-                    "standardization_stats.csv", K=K, fastMatch=True)
+                    "standardization_stats.csv", K=K, fastMatch=True, ann_index=index)
 
 else:
     st.write("Matching Results will be displayed here after uploading a model.")
