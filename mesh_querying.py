@@ -9,19 +9,35 @@ from mesh_descriptors import  three_d_property_descriptors, shape_property_descr
 from ANN import ann
 import trimesh
 import pymeshlab as pml
+from sklearn.preprocessing import StandardScaler
 import pickle
 
 
 def mesh_querying(model_file_name, csv_path, stats_path, K):
     data = pd.read_csv(csv_path)
 
-    #if model_file_name not in data['file_name'].values:
     descriptors = process_new_model(model_file_name, stats_path)
-    all_features = data.iloc[:, 2:].values
-    distances = euclidean_distances([descriptors], all_features)[0]
-    closest_indices = np.argsort(distances)[:K]
+    single_value_descriptors = descriptors[:6]  # Assuming columns 3 to 8 are single-value features
+    histogram_descriptors = descriptors[6:]
+
+    single_value_features = data.iloc[:, 2:8].values
+    histogram_features = [data.iloc[:, 8 + i * 100:8 + (i + 1) * 100].values for i in range(5)]
+
+    # Compute Euclidean distances for single-value features
+    single_value_distances = euclidean_distances([single_value_descriptors], single_value_features)[0]
+    standardized_histogram_distances = []
+    scaler = StandardScaler()
+    for i in range(5):
+        histogram_distances = \
+        euclidean_distances([histogram_descriptors[i * 100:(i + 1) * 100]], histogram_features[i])[0]
+        standardized_histogram_distances.append(scaler.fit_transform(histogram_distances.reshape(-1, 1)).flatten())
+
+    #distances = euclidean_distances([descriptors], all_features)[0]
+    total_distances = single_value_distances + sum(standardized_histogram_distances)
+    #closest_indices = np.argsort(distances)[:K]
+    closest_indices = np.argsort(total_distances)[:K]
     closest_models = data.iloc[closest_indices][['class_name', 'file_name']].values
-    closest_distances = distances[closest_indices]
+    closest_distances = total_distances[closest_indices]
     return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
 
     # else:
