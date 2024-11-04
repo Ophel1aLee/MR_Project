@@ -6,20 +6,20 @@ import open3d as o3d
 from mesh_resampling import mesh_resampling
 from mesh_normalize import mesh_normalize_for_new
 from mesh_descriptors import  three_d_property_descriptors, shape_property_descriptors
-from dimension_reduction import ann
+from ANN import ann
 import trimesh
 import pymeshlab as pml
 import pickle
 
 
-def mesh_querying(model_file_name, csv_path, stats_path):
+def mesh_querying(model_file_name, csv_path, stats_path, K):
     data = pd.read_csv(csv_path)
 
     #if model_file_name not in data['file_name'].values:
     descriptors = process_new_model(model_file_name, stats_path)
     all_features = data.iloc[:, 2:].values
     distances = euclidean_distances([descriptors], all_features)[0]
-    closest_indices = np.argsort(distances)[:4]
+    closest_indices = np.argsort(distances)[:K]
     closest_models = data.iloc[closest_indices][['class_name', 'file_name']].values
     closest_distances = distances[closest_indices]
     return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
@@ -116,13 +116,16 @@ def process_new_model(input_mesh_path, stats_path):
 
     return descriptors
 
-def fast_query(input_mesh_path, stats_path, descriptors_path):
+def fast_query(input_mesh_path, stats_path, descriptors_path, K):
     descriptors = process_new_model(input_mesh_path, stats_path)
-    umap_model = pickle.load((open('umap_model.sav', 'rb')))
+    #umap_model = pickle.load((open('umap_model.sav', 'rb')))
     db_descriptors = pd.read_csv(descriptors_path)
     db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
 
-    indices, distances = ann(umap_model, db_points, descriptors, 4)
+    indices, distances = ann(db_points.to_numpy(), descriptors, K)
+
+    print(indices)
+    print(indices[0,:])
 
     closest_models = db_descriptors.iloc[indices[0,:]][['class_name', 'file_name']].values
     closest_distances = distances[0,:]

@@ -46,7 +46,7 @@ def show_3d_model(mesh, width=400):
     st.plotly_chart(fig, key=f'model_plot_{np.random.randint(0, 1000000)}')
 
 
-def match_model(input_mesh_path, csv_path, stats_path, fastMatch = False):
+def match_model(input_mesh_path, csv_path, stats_path, K=4, fastMatch = False):
     st.write("Processing uploaded model...")
 
     query_mesh = load_model(input_mesh_path)
@@ -58,9 +58,9 @@ def match_model(input_mesh_path, csv_path, stats_path, fastMatch = False):
 
     # Find similar models using the find_similar_models function
     if fastMatch:
-        class_name, result = fast_query(input_mesh_path, stats_path, "fast_descriptors.csv")
+        class_name, result = fast_query(input_mesh_path, stats_path, "descriptors_standardized.csv", K)
     else:
-        class_name, result = mesh_querying(input_mesh_path, csv_path, stats_path)
+        class_name, result = mesh_querying(input_mesh_path, csv_path, stats_path, K)
     if isinstance(result, str):
         st.write(result)
         return
@@ -140,13 +140,15 @@ if uploaded_file is not None:
         temp_file.write(uploaded_file.read())
         input_mesh_path = temp_file.name  # 保存临时文件路径
 
+    K = st.sidebar.number_input("Number of results", min_value=1, max_value=2200)
+
     # match
     if st.sidebar.button("Match Model"):
-        match_model(input_mesh_path, "descriptors_standardized.csv", "standardization_stats.csv")
+        match_model(input_mesh_path, "descriptors_standardized.csv", "standardization_stats.csv", K=K)
     
     if st.sidebar.button("Fast Matching"):
         match_model(input_mesh_path, "descriptors_standardized.csv",
-                    "standardization_stats.csv", True)
+                    "standardization_stats.csv", K=K, fastMatch=True)
 
 else:
     st.write("Matching Results will be displayed here after uploading a model.")
