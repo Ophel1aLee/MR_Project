@@ -9,7 +9,7 @@ from mesh_descriptors import  three_d_property_descriptors, shape_property_descr
 from ANN import ann
 import trimesh
 import pymeshlab as pml
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import pickle
 
 
@@ -26,7 +26,8 @@ def mesh_querying(model_file_name, csv_path, stats_path, K):
     # Compute Euclidean distances for single-value features
     single_value_distances = euclidean_distances([single_value_descriptors], single_value_features)[0]
     standardized_histogram_distances = []
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
+    #scaler = StandardScaler()
     for i in range(5):
         histogram_distances = \
         euclidean_distances([histogram_descriptors[i * 100:(i + 1) * 100]], histogram_features[i])[0]
