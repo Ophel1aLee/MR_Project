@@ -1,16 +1,34 @@
 import pymeshlab as pml
 import os
 import concurrent.futures
+import open3d as o3d
+import math
 
 # pip install pymeshlab==2022.2
 
 
 # Resampling model
-def mesh_resampling(mesh, target_vertices=5000, tolerance=200, max_iterations=50):
+def mesh_resampling(input_mesh_path, target_vertices=5000, tolerance=200, max_iterations=50):
+    mesh = pml.MeshSet()
+    mesh.load_new_mesh(input_mesh_path)
+
     current_vertices = mesh.current_mesh().vertex_number()
 
     current_edge_length = 0.05
     targetedge_length = current_edge_length * (current_vertices / target_vertices) ** 0.05
+
+    # Calculate average target area of each triangle
+    o3dmesh = o3d.io.read_triangle_mesh(input_mesh_path)
+    a_tri = o3dmesh.get_surface_area() / (target_vertices * 2) # number of tris is roughly twice the number of verts
+
+    # Assuming all tris are equilateral, the area is calculated as T = (sqrt(3)/4) * a^2 (T=area, a=edge length)
+    # Reworking this gives a = sqrt((4/sqrt(3)) * T)
+    # To save on computing power, we approximate 4/sqrt(3) as 2.30940107676
+    targetedge_length = math.sqrt(2.30940107676 * a_tri)
+
+    prev_vcount = 0
+    unchanged = 0
+
 
     for i in range(max_iterations):
         # Reconstruct mush
@@ -27,9 +45,19 @@ def mesh_resampling(mesh, target_vertices=5000, tolerance=200, max_iterations=50
         if target_vertices - tolerance <= new_vertices <= target_vertices + tolerance:
             print(f"Target vertex count reached: {new_vertices}")
             break
+        if new_vertices == prev_vcount:
+            unchanged += 1
+        
+        # If vertex count stay the same for 5 iterations, there is no reason to continue
+        if unchanged >= 5:
+            print(f"Vertex count {new_vertices} remains unchanged")
+            prev_vcount = 0
+            unchanged = 0
+            break
 
         # Dynamically adjust the target edge length
         targetedge_length *= (new_vertices / target_vertices) ** 0.5
+        prev_vcount = new_vertices
 
     mesh.meshing_isotropic_explicit_remeshing(targetlen=pml.AbsoluteValue(targetedge_length), iterations=10)
     return mesh
@@ -48,14 +76,11 @@ def resample_database(input_folder, output_folder, target_vertices, tolerance=10
                 if not os.path.exists(output_dir):
                     os.makedirs(output_dir)
 
-                mesh = pml.MeshSet()
-                mesh.load_new_mesh(input_file_path)
-
                 # Resampling
                 print(f"Processing {input_file_path}...")
                 # remeshed_mesh = mesh_resampling(mesh, target_vertices, tolerance)
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(mesh_resampling, mesh, target_vertices, tolerance)
+                    future = executor.submit(mesh_resampling, input_file_path, target_vertices, tolerance)
                     try:
                         remeshed_mesh = future.result(timeout=timeout)
                         # Save the processed mesh to the output folder
@@ -96,3 +121,7 @@ def check_and_resample(directory):
                         print(f"Vertex count within range: {vertex_count}, no action needed.")
                 except Exception as e:
                     print(f"Failed to check or process {file_path}: {e}")
+
+
+if __name__ == '__main__':
+    resample_database("./ShapeDatabase", "./ShapeDatabase_resampled_test", 5000, 200, 300)

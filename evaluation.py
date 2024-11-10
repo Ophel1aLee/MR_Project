@@ -12,6 +12,8 @@ recalls = []
 
 classes = database['class_name'].unique()
 
+K = 5
+
 for class_name in classes:
     # 获取属于该类的所有模型
     class_models = database[database['class_name'] == class_name]
@@ -21,9 +23,6 @@ for class_name in classes:
         query_model = class_models.iloc[i]
         file_name = query_model['file_name']
         model_file_path = f"./ShapeDatabase_Resampled/{class_name}/{file_name}"
-
-        # 设置 K 为该类的大小
-        K = len(class_models)
 
         # 使用 mesh_querying 查询最相似的 K 个模型
         predicted_classes, _ = mesh_querying(model_file_path, csv_path, stats_path, K)
@@ -38,6 +37,8 @@ for class_name in classes:
         # 计算 Precision 和 Recall
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+
+        print(f"{class_name} | Precision: {precision}, Recall: {recall}")
 
         # 存储 Precision 和 Recall
         precisions.append(precision)
