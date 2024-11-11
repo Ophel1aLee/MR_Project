@@ -22,7 +22,7 @@ def mesh_resampling(input_mesh_path, target_vertices=5000, tolerance=200, max_it
     a_tri = o3dmesh.get_surface_area() / (target_vertices * 2) # number of tris is roughly twice the number of verts
 
     # Assuming all tris are equilateral, the area is calculated as T = (sqrt(3)/4) * a^2 (T=area, a=edge length)
-    # Reworking this gives a = sqrt((4/sqrt(3)) * T)
+    # Rewriting this gives a = sqrt((4/sqrt(3)) * T)
     # To save on computing power, we approximate 4/sqrt(3) as 2.30940107676
     targetedge_length = math.sqrt(2.30940107676 * a_tri)
 

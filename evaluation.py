@@ -1,6 +1,8 @@
 import pandas as pd
-from mesh_querying import mesh_querying
-
+from mesh_querying import mesh_querying, fast_query
+from stopwatch import Stopwatch
+import numpy as np
+from pynndescent import NNDescent
 
 csv_path = "descriptors_standardized.csv"
 stats_path = "standardization_stats.csv"
@@ -14,6 +16,16 @@ classes = database['class_name'].unique()
 
 K = 5
 
+stopwatch = Stopwatch()
+
+db_descriptors = pd.read_csv("descriptors_standardized.csv")
+db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
+shape_count = db_descriptors['class_name'].size
+class_count = db_descriptors['class_name'].unique().size
+index = NNDescent(db_points.to_numpy(), leaf_size=int(
+    shape_count/class_count), metric='manhattan')
+index.prepare()
+
 for class_name in classes:
     # 获取属于该类的所有模型
     class_models = database[database['class_name'] == class_name]
@@ -25,7 +37,7 @@ for class_name in classes:
         model_file_path = f"./ShapeDatabase_Resampled/{class_name}/{file_name}"
 
         # 使用 mesh_querying 查询最相似的 K 个模型
-        predicted_classes, _ = mesh_querying(model_file_path, csv_path, stats_path, K)
+        predicted_classes, _ = mesh_querying(model_file_path, csv_path, stats_path, K, stopwatch)
 
         # 统计 True Positives (TP)
         tp = sum(1 for predicted_class in predicted_classes if predicted_class == class_name)
@@ -43,6 +55,10 @@ for class_name in classes:
         # 存储 Precision 和 Recall
         precisions.append(precision)
         recalls.append(recall)
+
+    print(stopwatch.history)
+
+print(np.mean(stopwatch.history))
 
 # 计算平均 Precision 和 Recall
 avg_precision = sum(precisions) / len(precisions)

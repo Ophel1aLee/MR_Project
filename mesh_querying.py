@@ -10,10 +10,10 @@ from ANN import ann
 import trimesh
 import pymeshlab as pml
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-import pickle
+from stopwatch import Stopwatch
 
 
-def mesh_querying(model_file_name, csv_path, stats_path, K):
+def mesh_querying(model_file_name, csv_path, stats_path, K, stopwatch: Stopwatch | None = None):
     data = pd.read_csv(csv_path)
 
     descriptors = process_new_model(model_file_name, stats_path)
@@ -24,7 +24,10 @@ def mesh_querying(model_file_name, csv_path, stats_path, K):
     histogram_features = [data.iloc[:, 8 + i * 100:8 + (i + 1) * 100].values for i in range(5)]
 
     # Compute Euclidean distances for single-value features
+    if stopwatch != None:
+        stopwatch.start()
     single_value_distances = euclidean_distances([single_value_descriptors], single_value_features)[0]
+
     standardized_histogram_distances = []
     scaler = MinMaxScaler()
     #scaler = StandardScaler()
@@ -39,6 +42,9 @@ def mesh_querying(model_file_name, csv_path, stats_path, K):
     closest_indices = np.argsort(total_distances)[:K]
     closest_models = data.iloc[closest_indices][['class_name', 'file_name']].values
     closest_distances = total_distances[closest_indices]
+    if stopwatch != None:
+        stopwatch.stop()
+        stopwatch.record_time()
     return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
 
     # else:
@@ -134,12 +140,18 @@ def process_new_model(input_mesh_path, stats_path):
 
     return descriptors
 
-def fast_query(input_mesh_path, stats_path, descriptors_path, ann_index, K):
+
+def fast_query(input_mesh_path, stats_path, descriptors_path, ann_index, K, stopwatch: Stopwatch | None = None):
     descriptors = process_new_model(input_mesh_path, stats_path)
     db_descriptors = pd.read_csv(descriptors_path)
+    if stopwatch != None:
+        stopwatch.start()
     indices, distances = ann(ann_index, descriptors, K)
     closest_models = db_descriptors.iloc[indices[0,:]][['class_name', 'file_name']].values
     closest_distances = distances[0,:]
+    if stopwatch != None:
+        stopwatch.stop()
+        stopwatch.record_time()
 
     return [model[0] for model in closest_models], list(zip(closest_models, closest_distances))
 

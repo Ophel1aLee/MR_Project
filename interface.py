@@ -77,7 +77,8 @@ def match_model(input_mesh_path, csv_path, stats_path, K=4, fastMatch = False, a
 
     for i, ((class_name, file_name), distance) in enumerate(result):
         # Construct the file path based on class name and file name (adjust to your directory structure)
-        model_file_path = os.path.join("ShapeDatabase", class_name, file_name)
+        model_file_path = os.path.join(
+            "ShapeDatabase_Normalized", class_name, file_name)
 
         # Load and display the similar model
         similar_mesh = load_model(model_file_path)
@@ -117,7 +118,7 @@ def match_model_global(input_mesh_path, csv_path):
 
     for i, ((class_name, file_name), distance) in enumerate(similar_models):
         # Construct the file path based on class name and file name (adjust to your directory structure)
-        model_file_path = os.path.join('ShapeDatabase', class_name, file_name)
+        model_file_path = os.path.join('ShapeDatabase_Normalized', class_name, file_name)
 
         # Load and display the similar model
         similar_mesh = load_model(model_file_path)
