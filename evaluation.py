@@ -3,6 +3,12 @@ from mesh_querying import mesh_querying, fast_query
 from stopwatch import Stopwatch
 import numpy as np
 from pynndescent import NNDescent
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-K', help='Set value for K (default=5)', default=5, type=int)
+parser.add_argument('--version', help='Which querying algorithm to use ("custom" or "ANN") (default="custom")', default='custom')
+args = parser.parse_args()
 
 csv_path = "descriptors_standardized.csv"
 stats_path = "standardization_stats.csv"
@@ -12,23 +18,31 @@ database = pd.read_csv(csv_path)
 precisions = []
 recalls = []
 
+precisionPerClass = {}
+recallPerClass = {}
+
 classes = database['class_name'].unique()
 
-K = 5
+K = args.K
 
 stopwatch = Stopwatch()
 
-db_descriptors = pd.read_csv("descriptors_standardized.csv")
-db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
-shape_count = db_descriptors['class_name'].size
-class_count = db_descriptors['class_name'].unique().size
-index = NNDescent(db_points.to_numpy(), leaf_size=int(
-    shape_count/class_count), metric='manhattan')
-index.prepare()
+if args.version == 'ANN':
+    print("Constructing kd-tree for ANN...")
+    db_descriptors = pd.read_csv("descriptors_standardized.csv")
+    db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
+    shape_count = db_descriptors['class_name'].size
+    class_count = db_descriptors['class_name'].unique().size
+    index = NNDescent(db_points.to_numpy(), leaf_size=int(
+        shape_count/class_count), metric='manhattan')
+    index.prepare()
+    print("kd-tree ready.")
 
 for class_name in classes:
     # 获取属于该类的所有模型
     class_models = database[database['class_name'] == class_name]
+
+    p = r = 0
 
     # 仅取2个模型作为查询形状
     for i in range(min(2, len(class_models))):
@@ -37,7 +51,10 @@ for class_name in classes:
         model_file_path = f"./ShapeDatabase_Resampled/{class_name}/{file_name}"
 
         # 使用 mesh_querying 查询最相似的 K 个模型
-        predicted_classes, _ = mesh_querying(model_file_path, csv_path, stats_path, K, stopwatch)
+        if args.version == 'custom':
+            predicted_classes, _ = mesh_querying(model_file_path, csv_path, stats_path, K, stopwatch)
+        elif args.version == 'ANN':
+            predicted_classes, _ = fast_query(model_file_path, stats_path, csv_path, index, K, stopwatch)
 
         # 统计 True Positives (TP)
         tp = sum(1 for predicted_class in predicted_classes if predicted_class == class_name)
@@ -50,15 +67,23 @@ for class_name in classes:
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
 
+        p += precision
+        r += recall
+
         print(f"{class_name} | Precision: {precision}, Recall: {recall}")
 
         # 存储 Precision 和 Recall
         precisions.append(precision)
         recalls.append(recall)
+    
+    p /= 2
+    r /= 2
+    precisionPerClass[class_name] = p
+    recallPerClass[class_name] = r
 
-    print(stopwatch.history)
-
-print(np.mean(stopwatch.history))
+    #print(stopwatch.history)
+avgTimeMillis = np.mean(stopwatch.history)
+print(f"Average Query time: {avgTimeMillis} ms")
 
 # 计算平均 Precision 和 Recall
 avg_precision = sum(precisions) / len(precisions)
