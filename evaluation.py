@@ -33,16 +33,21 @@ if args.version == 'ANN':
     db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
     shape_count = db_descriptors['class_name'].size
     class_count = db_descriptors['class_name'].unique().size
-    index = NNDescent(db_points.to_numpy(), leaf_size=int(
-        shape_count/class_count), metric='manhattan')
+    index = NNDescent(db_points.to_numpy(), metric='manhattan')
     index.prepare()
     print("kd-tree ready.")
+
+test = 0
 
 for class_name in classes:
     # 获取属于该类的所有模型
     class_models = database[database['class_name'] == class_name]
+    if test >= 3:
+        break
+    test += 1
 
-    p = r = 0
+    pClass = []
+    rClass = []
 
     # 仅取2个模型作为查询形状
     for i in range(min(2, len(class_models))):
@@ -50,71 +55,89 @@ for class_name in classes:
         file_name = query_model['file_name']
         model_file_path = f"./ShapeDatabase_Resampled/{class_name}/{file_name}"
 
-        # 使用 mesh_querying 查询最相似的 K 个模型
+        # Perform the appropriate querying algorithm
         if args.version == 'custom':
             predicted_classes, _ = mesh_querying(model_file_path, csv_path, stats_path, K, stopwatch)
         elif args.version == 'ANN':
             predicted_classes, _ = fast_query(model_file_path, stats_path, csv_path, index, K, stopwatch)
 
-        # 统计 True Positives (TP)
-        tp = sum(1 for predicted_class in predicted_classes if predicted_class == class_name)
-        fp = K - tp  # 假正例
+        # For each result, check if it belongs to the query class
+        isTP = list(map(lambda x: x == class_name, predicted_classes))
 
-        # 计算 False Negatives (FN)
-        fn = len(class_models) - tp  # 该类中的模型数减去找到的真正例
+        p = []
+        r = []
 
-        # 计算 Precision 和 Recall
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        # Calculate P and R for each query size between 1 and K
+        for i in range(K):
+            if i < 1:
+                continue
+            tp = len(list(filter(lambda x: x == True, isTP[:i])))
+            fp = i - tp
+            fn = len(class_models) - tp
 
-        p += precision
-        r += recall
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            p.append(precision)
+            r.append(recall)
+        
+        precisions.append(p)
+        recalls.append(r)
+        pClass.append(p)
+        rClass.append(r)
 
-        print(f"{class_name} | Precision: {precision}, Recall: {recall}")
+        print(f"{class_name}")
+        print(f"Precisions: {p}")
+        print(f"Recalls: {r}")
 
-        # 存储 Precision 和 Recall
-        precisions.append(precision)
-        recalls.append(recall)
-    
-    p /= 2
-    r /= 2
-    precisionPerClass[class_name] = p
-    recallPerClass[class_name] = r
+    precisionPerClass[class_name] = np.mean(np.array(pClass).T, axis=1)
+    recallPerClass[class_name] = np.mean(np.array(rClass).T, axis=1)
 
-    #print(stopwatch.history)
 avgTimeMillis = np.mean(stopwatch.history)
 print(f"Average Query time: {avgTimeMillis} ms")
-
-# 计算平均 Precision 和 Recall
-avg_precision = sum(precisions) / len(precisions)
-avg_recall = sum(recalls) / len(recalls)
-
-print(f"系统平均精确率：{avg_precision:.2f}")
-print(f"系统平均召回率：{avg_recall:.2f}")
 
 import matplotlib.pyplot as plt
 
 
-# 绘制每个模型的 Precision 和 Recall
-plt.figure(figsize=(14, 6))
+# Get average precision and recall per query size
+ps = np.mean(np.array(precisions).T, axis=1)
+rs = np.mean(np.array(recalls).T, axis=1)
 
-plt.plot(range(len(precisions)), precisions, marker='o', label='Precision', linestyle='-', color='b')
-plt.plot(range(len(recalls)), recalls, marker='o', label='Recall', linestyle='-', color='g')
+# Get the index of the highest area under P and R
+optimalK = np.argmax(np.multiply(ps, rs))
 
-plt.xlabel('Query Index')
-plt.ylabel('Score')
-plt.title('Precision and Recall for Each Query')
-plt.legend()
-plt.grid(True)
-plt.show()
+PRperK = pd.DataFrame({'Precision': ps})
+PRperK['Recall'] = rs
 
-from sklearn.metrics import precision_recall_curve
+PperC = {}
+RperC = {}
+
+for c in precisionPerClass:
+    PperC[c] = precisionPerClass[c][optimalK]
+    RperC[c] = recallPerClass[c][optimalK]
+
+PRperC = pd.DataFrame({'Precision': PperC})
+PRperC['Recall'] = RperC
+
+PRperK.to_csv("pr_cache.csv")
+PRperC.to_csv("pr_per_class.csv")
+
+# plt.plot(range(len(precisions)), precisions, marker='o', label='Precision', linestyle='-', color='b')
+# plt.plot(range(len(recalls)), recalls, marker='o', label='Recall', linestyle='-', color='g')
+
+# plt.xlabel('Query Index')
+# plt.ylabel('Score')
+# plt.title('Precision and Recall for Each Query')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+
+# from sklearn.metrics import precision_recall_curve
 
 # 有 ground truth 和 predicted probabilities
 # 这里以 precisions 和 recalls 数组为例来画图
 
 plt.figure(figsize=(8, 6))
-plt.plot(recalls, precisions, marker='o', linestyle='-', color='r')
+plt.plot(rs, ps, linestyle='-', color='r')
 plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve')
