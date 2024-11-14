@@ -37,7 +37,14 @@ if args.version == 'ANN':
     index.prepare()
     print("kd-tree ready.")
 
+test = 0
+
 for class_name in classes:
+
+    if test >= 3:
+        break
+    test += 1
+
     # 获取属于该类的所有模型
     class_models = database[database['class_name'] == class_name]
 
@@ -47,7 +54,7 @@ for class_name in classes:
     rClass = []
 
     # 仅取2个模型作为查询形状
-    for i in range(min(10, len(class_models))):
+    for i in range(min(3, len(class_models))):
         query_model = class_models.iloc[i]
         file_name = query_model['file_name']
         model_file_path = f"./ShapeDatabase_Resampled/{class_name}/{file_name}"
@@ -96,9 +103,12 @@ ps = np.mean(np.array(precisions).T, axis=1)
 rs = np.mean(np.array(recalls).T, axis=1)
 
 # Get the index of the highest area under P and R
-optimalK = np.argmax(np.multiply(ps, rs))
+prprod = np.multiply(ps, rs)
+prsum = np.add(ps, rs)
+f1s = 2 * (prprod / prsum)
+optimalK = np.argmax(f1s)
 
-print(f"Optimal K: {optimalK}")
+print(f"Optimal K: {optimalK+1}")
 
 PRperK = pd.DataFrame({'Precision': ps})
 PRperK['Recall'] = rs
