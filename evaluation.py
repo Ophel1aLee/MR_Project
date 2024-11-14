@@ -37,20 +37,17 @@ if args.version == 'ANN':
     index.prepare()
     print("kd-tree ready.")
 
-test = 0
-
 for class_name in classes:
     # 获取属于该类的所有模型
     class_models = database[database['class_name'] == class_name]
-    if test >= 3:
-        break
-    test += 1
+
+    print(f"Processing shapes in {class_name}")
 
     pClass = []
     rClass = []
 
     # 仅取2个模型作为查询形状
-    for i in range(min(2, len(class_models))):
+    for i in range(min(10, len(class_models))):
         query_model = class_models.iloc[i]
         file_name = query_model['file_name']
         model_file_path = f"./ShapeDatabase_Resampled/{class_name}/{file_name}"
@@ -85,10 +82,6 @@ for class_name in classes:
         pClass.append(p)
         rClass.append(r)
 
-        print(f"{class_name}")
-        print(f"Precisions: {p}")
-        print(f"Recalls: {r}")
-
     precisionPerClass[class_name] = np.mean(np.array(pClass).T, axis=1)
     recallPerClass[class_name] = np.mean(np.array(rClass).T, axis=1)
 
@@ -105,6 +98,8 @@ rs = np.mean(np.array(recalls).T, axis=1)
 # Get the index of the highest area under P and R
 optimalK = np.argmax(np.multiply(ps, rs))
 
+print(f"Optimal K: {optimalK}")
+
 PRperK = pd.DataFrame({'Precision': ps})
 PRperK['Recall'] = rs
 
@@ -118,8 +113,8 @@ for c in precisionPerClass:
 PRperC = pd.DataFrame({'Precision': PperC})
 PRperC['Recall'] = RperC
 
-PRperK.to_csv("pr_cache.csv")
-PRperC.to_csv("pr_per_class.csv")
+PRperK.to_csv(f"pr_cache_{args.version}.csv")
+PRperC.to_csv(f"pr_per_class_{args.version}.csv")
 
 # plt.plot(range(len(precisions)), precisions, marker='o', label='Precision', linestyle='-', color='b')
 # plt.plot(range(len(recalls)), recalls, marker='o', label='Recall', linestyle='-', color='g')
