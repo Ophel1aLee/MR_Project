@@ -3,7 +3,6 @@ import os
 import concurrent.futures
 import open3d as o3d
 import math
-
 # pip install pymeshlab==2022.2
 
 
@@ -19,7 +18,8 @@ def mesh_resampling(input_mesh_path, target_vertices=5000, tolerance=200, max_it
 
     # Calculate average target area of each triangle
     o3dmesh = o3d.io.read_triangle_mesh(input_mesh_path)
-    a_tri = o3dmesh.get_surface_area() / (target_vertices * 2) # number of tris is roughly twice the number of verts
+    # number of tris is roughly twice the number of verts
+    a_tri = o3dmesh.get_surface_area() / (target_vertices * 2)
 
     # Assuming all tris are equilateral, the area is calculated as T = (sqrt(3)/4) * a^2 (T=area, a=edge length)
     # Rewriting this gives a = sqrt((4/sqrt(3)) * T)
@@ -28,7 +28,6 @@ def mesh_resampling(input_mesh_path, target_vertices=5000, tolerance=200, max_it
 
     prev_vcount = 0
     unchanged = 0
-
 
     for i in range(max_iterations):
         # Reconstruct mush
@@ -90,10 +89,6 @@ def resample_database(input_folder, output_folder, target_vertices, tolerance=10
                         print(f"Skipping {input_file_path} due to timeout (>{timeout} seconds)")
                     except Exception as e:
                         print(f"An error occurred while processing {input_file_path}: {e}")
-
-                # Save new mesh file
-                # remeshed_mesh.save_current_mesh(output_file_path)
-                # print(f"Saved processed mesh to {output_file_path}")
 
 
 # This is for processing those who unable resampling to the wanted vertices
