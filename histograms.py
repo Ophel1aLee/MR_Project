@@ -1,19 +1,22 @@
+from __future__ import annotations
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import open3d as o3d
 import math
 import argparse
-
 from mesh_normalize import triangleCenter, sign
+
 
 def nbins(n) -> int:
     return int(math.sqrt(len(n)))
+
 
 def printStats(variable, data: list[float | int]):
     print(variable)
     print("\t Mean: " + str(np.average(data)))
     print("\t SD: " + str(math.sqrt(np.var(data))))
+
 
 def makeHist(title: str, xlabel: str, data: list[float | int], bins: list[float] | None = None):
     b = nbins(data) if bins is None else bins
@@ -24,6 +27,7 @@ def makeHist(title: str, xlabel: str, data: list[float | int], bins: list[float]
     filename = title.lower().replace(" ", "_")
     plt.savefig(f"figures/{filename}_{version}.pdf")
     plt.show()
+
 
 def analyze_sample_count():
     print("== Analyzing sample count ==")
@@ -37,6 +41,7 @@ def analyze_sample_count():
     makeHist("Number of Faces", "Face Count",
              number_faces, np.arange(0, 50000, 1000, float))
 
+
 def analyze_edge_variance():
     print("== Analyzing edge variance ==")
     edge_var = cache_data['edge_var']
@@ -49,6 +54,7 @@ def analyze_edge_variance():
     printStats("Edge Variance", edge_var_trunc)
     makeHist("Edge Length Variance", "Variances",
              edge_var_trunc, np.arange(0, 1.02, 0.02, float))
+
 
 def analyze_translation():
     print("== Analyzing translation ==")
@@ -67,6 +73,7 @@ def analyze_translation():
     
     printStats("Distance to World Origin", distances)
     makeHist("Distance to World Origin", "Distances", distances, np.arange(0, 5, 0.1, float))
+
 
 def analyze_rotation():
     print("== Analyzing rotation ==")
@@ -126,6 +133,7 @@ def analyze_rotation():
     makeHist("Dot Product e_2", "e_2 . y", dotys, np.arange(0, 1.02, 0.02, float))
     makeHist("Dot Product e_3", "e_3 . z", dotzs, np.arange(0, 1.02, 0.02, float))
 
+
 def analyze_scale():
     print("== Analyzing scale ==")
     toolarge = 0
@@ -144,7 +152,6 @@ def analyze_scale():
     printStats("AABB Length", max_sides)
     print(f"\t Discarded: {toolarge}")
     makeHist("AABB Length", "L_max", max_sides, np.arange(0, 5, 0.1, float))
-
 
 
 def analyze_flip_direction():
@@ -199,6 +206,7 @@ def analyze_flip_direction():
     plt.savefig(f"figures/direction_of_mass_{version}.pdf")
     plt.show()
 
+
 def main(values: list[str]):
     all_values = ["sample_count", "edge_variance", "translation", "rotation", "scale", "flip"]
     all_functions = [analyze_sample_count, analyze_edge_variance, analyze_translation, analyze_rotation, analyze_scale, analyze_flip_direction]
@@ -211,6 +219,7 @@ def main(values: list[str]):
         if v in values:
             f()
             print("======================")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
