@@ -190,7 +190,7 @@ class MeshViewerApp:
 # Run GUI
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', help='Path to the shape data file (CSV)', default="mesh_analysis_cache.csv")
+    parser.add_argument('--path', help='Path to the shape data file (CSV)', default="mesh_analysis_cache_original.csv")
     args = parser.parse_args()
 
     # Load cached data
