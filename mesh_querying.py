@@ -72,6 +72,7 @@ def process_new_model(input_mesh_path, stats_path):
 
     resampled_mesh = o3d.io.read_triangle_mesh("temp.obj")
     normalized_mesh = mesh_normalize_for_new(resampled_mesh)
+    normalized_mesh.compute_vertex_normals()
     o3d.io.write_triangle_mesh("temp.obj", normalized_mesh, write_vertex_normals=True)
 
     normalized_mesh = trimesh.load("temp.obj")
