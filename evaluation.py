@@ -7,8 +7,7 @@ import argparse
 from ANN import construct_kd_tree
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-K', help='Set value for K (default=5)', default=5, type=int)
-parser.add_argument('--version', help='Which querying algorithm to use ("custom" or "ANN") (default="custom")', default='custom')
+parser.add_argument('-K', help='Maximum value for K (default=50)', default=50, type=int)
 args = parser.parse_args()
 
 csv_path = "descriptors_standardized.csv"
@@ -28,12 +27,11 @@ K = args.K
 
 stopwatch = Stopwatch()
 
-if args.version == 'ANN':
-    print("Constructing kd-tree for ANN...")
-    db_descriptors = pd.read_csv("descriptors_standardized.csv")
-    db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
-    index = construct_kd_tree(db_points, 'manhattan')
-    print("kd-tree ready.")
+print("Constructing kd-tree for ANN...")
+db_descriptors = pd.read_csv("descriptors_standardized.csv")
+db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
+index = construct_kd_tree(db_points, 'manhattan')
+print("kd-tree ready.")
 
 test = 0
 
@@ -57,11 +55,7 @@ for class_name in classes:
         file_name = query_model['file_name']
         model_file_path = f"./ShapeDatabase_Resampled/{class_name}/{file_name}"
 
-        # Perform the appropriate querying algorithm
-        if args.version == 'custom':
-            predicted_classes, _ = mesh_querying(model_file_path, csv_path, stats_path, K, stopwatch)
-        elif args.version == 'ANN':
-            predicted_classes, _ = fast_query(model_file_path, stats_path, csv_path, index, K, stopwatch)
+        predicted_classes, _ = fast_query(model_file_path, stats_path, csv_path, index, K, stopwatch)
 
         # For each result, check if it belongs to the query class
         isTP = list(map(lambda x: x == class_name, predicted_classes))
@@ -121,28 +115,5 @@ for c in precisionPerClass:
 PRperC = pd.DataFrame({'Precision': PperC})
 PRperC['Recall'] = RperC
 
-PRperK.to_csv(f"pr_cache_{args.version}.csv")
-PRperC.to_csv(f"pr_per_class_{args.version}.csv")
-
-# plt.plot(range(len(precisions)), precisions, marker='o', label='Precision', linestyle='-', color='b')
-# plt.plot(range(len(recalls)), recalls, marker='o', label='Recall', linestyle='-', color='g')
-
-# plt.xlabel('Query Index')
-# plt.ylabel('Score')
-# plt.title('Precision and Recall for Each Query')
-# plt.legend()
-# plt.grid(True)
-# plt.show()
-
-# from sklearn.metrics import precision_recall_curve
-
-# 有 ground truth 和 predicted probabilities
-# 这里以 precisions 和 recalls 数组为例来画图
-
-plt.figure(figsize=(8, 6))
-plt.plot(rs, ps, linestyle='-', color='r')
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.title('Precision-Recall Curve')
-plt.grid(True)
-plt.show()
+PRperK.to_csv(f"pr_cache.csv")
+PRperC.to_csv(f"pr_per_class.csv")

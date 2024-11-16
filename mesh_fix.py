@@ -77,10 +77,10 @@ def fix_database(input_dir, output_dir):
                 output_file_path = os.path.join(output_dir, os.path.relpath(input_file_path, input_dir))
                 shutil.copy2(input_file_path, output_file_path)
 
+if __name__ == '__main__':
+    # Call the function to fix the mesh
+    input_directory = "./ShapeDatabase"
+    output_directory = "./ShapeDatabase_fixed"
 
-# Call the function to fix the mesh
-input_directory = "./ShapeDatabase"
-output_directory = "./ShapeDatabase_fixed"
-
-fix_database(input_directory, output_directory)
-print("finished")
+    fix_database(input_directory, output_directory)
+    print("finished")

@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import os.path
 import math
+import argparse
 
 
 def Rx(theta):
@@ -154,3 +155,11 @@ def normalize_database(input_folder, output_folder):
                 shutil.copy2(input_file_path, output_file_path)
     
     print(f"Finished normalization ({failed} failed shapes)")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', help='Path to the root folder of the input database (default="./ShapeDatabase_Resampled")', default="./ShapeDatabase_Resampled")
+    parser.add_argument('--output', help='Path to the root folder of the output database (default="./ShapeDatabase_Normalized")')
+    args = parser.parse_args()
+
+    normalize_database(args.input, args.output)

@@ -119,4 +119,4 @@ def check_and_resample(directory):
 
 
 if __name__ == '__main__':
-    resample_database("./ShapeDatabase", "./ShapeDatabase_resampled_test", 5000, 200, 300)
+    resample_database("./ShapeDatabase", "./ShapeDatabase_Resampled", 5000, 200, 300)

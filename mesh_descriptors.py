@@ -55,8 +55,6 @@ def three_d_property_descriptors(mesh):
     eigenvalues, _ = np.linalg.eig(covariance_matrix)
     eccentricity = max(eigenvalues) / min(eigenvalues)
 
-    # print(mesh_volume)
-    # print(obb_volume)
     return (surface_area, compactness, rectangularity, diameter, convexity, eccentricity)
 
 
@@ -269,14 +267,6 @@ def calculate_descriptors(meshes, n_samples, histogram_bins):
         # Save the data
         data.append(result)
 
-    # Standardize single valued features
-    # scaler = StandardScaler()
-    # single_value_features_normalized = scaler.fit_transform(single_value_features)
-
-    # Store the mean and standard deviation of each descriptor
-    # mean_values = scaler.mean_
-    # std_values = scaler.scale_
-
     # Add results
     for i, result in enumerate(data):
         result['surface_area'] = single_value_features[i][0]
@@ -287,7 +277,7 @@ def calculate_descriptors(meshes, n_samples, histogram_bins):
         result['eccentricity'] = single_value_features[i][5]
 
     # Return descriptor data and mean standard deviation
-    return data#, mean_values, std_values
+    return data
 
 
 def save_descriptors_to_csv(data, output_file):
@@ -320,4 +310,3 @@ def calculate_descriptor_for_the_database(input_folder, n_samples, histogram_bin
 
     descriptors = calculate_descriptors(meshes, n_samples, histogram_bins)
     save_descriptors_to_csv(descriptors, 'descriptors.csv')
-    # save_stats_to_csv(mean_values, std_values, 'stats.csv')

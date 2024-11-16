@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from pynndescent import NNDescent
 import numpy as np
 

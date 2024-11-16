@@ -11,6 +11,7 @@ from mesh_resampling import mesh_resampling
 from sklearn.metrics.pairwise import cosine_similarity
 
 
+# The stopwatch is None by default, because it is only used during evaluation
 def mesh_querying(model_file_name, csv_path, stats_path, K, stopwatch: Stopwatch | None = None):
     data = pd.read_csv(csv_path)
 
@@ -18,6 +19,9 @@ def mesh_querying(model_file_name, csv_path, stats_path, K, stopwatch: Stopwatch
     descriptors = process_new_model(model_file_name, stats_path)
     single_value_descriptors = descriptors[:6]
     histogram_descriptors = descriptors[6:]
+
+    if stopwatch != None:
+        stopwatch.start()
 
     # Extract features from the dataset
     single_value_features = data.iloc[:, 2:8].values

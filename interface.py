@@ -51,9 +51,6 @@ def match_model(input_mesh_path, csv_path, stats_path, K=4, fastMatch = False, a
     st.subheader("Query Model")
     show_3d_model(query_mesh, width=400)
 
-    # Extract the file name from the input path
-    model_file_name = os.path.splitext(uploaded_file.name)[0] + '.obj'
-
     # Find similar models using the find_similar_models function
     if fastMatch:
         class_name, result = fast_query(input_mesh_path, stats_path, "descriptors_standardized.csv", ann_index, K)

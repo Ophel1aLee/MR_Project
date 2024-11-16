@@ -4,11 +4,6 @@ import pandas as pd
 import os
 import argparse
 
-
-# Path for cached data
-CACHE_FILE = "mesh_analysis_cache.csv"
-
-
 # Load mesh and evaluate mesh properties through vertices and triangles
 def analyze_mesh(mesh, file_path, shape_class):
     vertices = np.asarray(mesh.vertices)
@@ -116,9 +111,9 @@ def count_defects(folder_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--command', help='"analyze": full analysis of the DB; "count_defects": Only count number of broken shapes', default="count_defects")
-    parser.add_argument('--path', help='Path to root folder of the database', default="./ShapeDatabase_Normalized")
-    parser.add_argument('--output', help='Name of output csv file', default="./mesh_analysis_cache_normalized.csv")
+    parser.add_argument('--command', help='"analyze": full analysis of the DB; "count_defects": Only count number of broken shapes (default=analyze)', default="analyze")
+    parser.add_argument('--path', help='Path to root folder of the database (default="./ShapeDatabase_Normalized")', default="./ShapeDatabase_Normalized")
+    parser.add_argument('--output', help='Name of output csv file (default="./mesh_analysis_cache_normalized.csv")', default="./mesh_analysis_cache_normalized.csv")
     args = parser.parse_args()
 
     if args.command == 'analyze':
