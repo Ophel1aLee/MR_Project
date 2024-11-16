@@ -7,6 +7,7 @@ import os
 import pandas as pd
 from pynndescent import NNDescent
 from mesh_querying import mesh_querying, fast_query
+from ANN import construct_kd_tree
 
 
 def load_model(file_path):
@@ -91,10 +92,7 @@ def set_ann_index():
     print("test")
     db_descriptors = pd.read_csv("descriptors_standardized.csv")
     db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
-    shape_count = db_descriptors['class_name'].size
-    class_count = db_descriptors['class_name'].unique().size
-    index = NNDescent(db_points.to_numpy(), leaf_size=int(shape_count/class_count), metric='manhattan')
-    index.prepare()
+    index = construct_kd_tree(db_points, 'manhattan')
     return index
 
 # Streamlit

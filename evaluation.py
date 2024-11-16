@@ -4,6 +4,7 @@ from stopwatch import Stopwatch
 import numpy as np
 from pynndescent import NNDescent
 import argparse
+from ANN import construct_kd_tree
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-K', help='Set value for K (default=5)', default=5, type=int)
@@ -31,10 +32,7 @@ if args.version == 'ANN':
     print("Constructing kd-tree for ANN...")
     db_descriptors = pd.read_csv("descriptors_standardized.csv")
     db_points = db_descriptors.drop(['class_name', 'file_name'], axis=1)
-    shape_count = db_descriptors['class_name'].size
-    class_count = db_descriptors['class_name'].unique().size
-    index = NNDescent(db_points.to_numpy(), metric='manhattan')
-    index.prepare()
+    index = construct_kd_tree(db_points, 'manhattan')
     print("kd-tree ready.")
 
 test = 0
